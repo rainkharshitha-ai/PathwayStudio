@@ -5,7 +5,7 @@ const EmailLogs = () => {
   const [search, setSearch] = useState("");
 
   const fetchLogs = async () => {
-    const res = await fetch("http://localhost:4000/api/email-logs");
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/email-logs`);
     const data = await res.json();
     setLogs(data);
   };
@@ -16,14 +16,14 @@ const EmailLogs = () => {
 
   // 🔁 Resend email
   const resendEmail = async (id) => {
-  await fetch(`http://localhost:4000/api/email-logs/resend/${id}`, {
+  await fetch(`${import.meta.env.VITE_API_URL}/api/email-logs/resend/${id}`, {
     method: "POST",
   });
   alert("Email resent successfully");
 };
 
 const deleteLog = async (id) => {
-  await fetch(`http://localhost:4000/api/email-logs/${id}`, {
+  await fetch(`${import.meta.env.VITE_API_URL}/api/email-logs/${id}`, {
     method: "DELETE",
   });
 
@@ -134,17 +134,11 @@ const deleteLog = async (id) => {
     </div>
   </div>
 </td>
-
-
-
-
-
-
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+  </tr>
+   ))}
+  </tbody>
+  </table>
+  </div>
   );
 };
 

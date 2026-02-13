@@ -9,7 +9,8 @@ const Applications = () => {
   // ======================
   const fetchApplications = async () => {
     try {
-      const res = await fetch("http://localhost:4000/api/applications");
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/applications`);
+
       const data = await res.json();
       setApplications(data);
     } catch (error) {
@@ -28,7 +29,8 @@ const Applications = () => {
   // ======================
   const updateStatus = async (id, status) => {
     try {
-      await fetch(`http://localhost:4000/api/applications/${id}`, {
+      await fetch(`${import.meta.env.VITE_API_URL}/api/applications/${id}`, {
+
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status }),
@@ -56,8 +58,7 @@ const Applications = () => {
     if (!confirmDelete) return;
 
     try {
-      const res = await fetch(
-        `http://localhost:4000/api/applications/${id}`,
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/applications/${id}`,
         { method: "DELETE" }
       );
 

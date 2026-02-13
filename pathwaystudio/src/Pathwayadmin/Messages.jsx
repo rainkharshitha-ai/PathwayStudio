@@ -14,7 +14,8 @@ const Messages = () => {
 
   const fetchMessages = async () => {
     try {
-      const res = await fetch("http://localhost:4000/api/messages");
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/messages`);
+
 
       if (!res.ok) {
         throw new Error("Failed to fetch messages");
@@ -42,7 +43,8 @@ const Messages = () => {
 
     try {
       const res = await fetch(
-        `http://localhost:4000/api/messages/${id}`,
+  `${import.meta.env.VITE_API_URL}/api/messages/${id}`,
+
         { method: "DELETE" }
       );
 

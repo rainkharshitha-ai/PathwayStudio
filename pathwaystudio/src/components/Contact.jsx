@@ -33,7 +33,8 @@ const Contact = () => {
     if (Object.keys(validationErrors).length !== 0) return;
 
     try {
-      await fetch("http://localhost:4000/api/messages", {
+      await fetch(`${import.meta.env.VITE_API_URL}/api/messages`, {
+
         method: "POST",
         headers: {
           "Content-Type": "application/json",
