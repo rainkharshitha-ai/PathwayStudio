@@ -4,12 +4,11 @@ import { auth } from "../firebase";
 
 import Applications from "./Applications";
 import Messages from "./Messages";
-import EmailLogs from "./EmailLogs"; // ✅ ADD THIS
+import EmailLogs from "./EmailLogs";
 
 const AdminDashboard = () => {
   const [page, setPage] = useState("applications");
 
-  // 🔐 Logout admin
   const logout = async () => {
     try {
       await signOut(auth);
@@ -21,12 +20,26 @@ const AdminDashboard = () => {
   };
 
   return (
-    <div style={{ padding: "20px", fontFamily: "Arial" }}>
+    <div
+      style={{
+        padding: "20px",
+        fontFamily: "Arial",
+        maxWidth: "100%",
+        overflowX: "hidden",
+      }}
+    >
       {/* HEADER */}
-      <h1>Admin Dashboard</h1>
+      <h1 style={{ marginBottom: "20px" }}>Admin Dashboard</h1>
 
       {/* NAV BUTTONS */}
-      <div style={{ marginBottom: "20px" }}>
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: "10px",
+          marginBottom: "20px",
+        }}
+      >
         <button
           onClick={() => setPage("applications")}
           style={buttonStyle}
@@ -36,15 +49,14 @@ const AdminDashboard = () => {
 
         <button
           onClick={() => setPage("messages")}
-          style={{ ...buttonStyle, marginLeft: "10px" }}
+          style={buttonStyle}
         >
           Messages
         </button>
 
-        {/* ✅ NEW BUTTON */}
         <button
           onClick={() => setPage("emailLogs")}
-          style={{ ...buttonStyle, marginLeft: "10px" }}
+          style={buttonStyle}
         >
           Sent Emails
         </button>
@@ -53,7 +65,6 @@ const AdminDashboard = () => {
           onClick={logout}
           style={{
             ...buttonStyle,
-            marginLeft: "10px",
             backgroundColor: "#e74c3c",
           }}
         >
@@ -67,20 +78,20 @@ const AdminDashboard = () => {
       <div style={{ marginTop: "20px" }}>
         {page === "applications" && <Applications />}
         {page === "messages" && <Messages />}
-        {page === "emailLogs" && <EmailLogs />} {/* ✅ SHOW EMAIL LOGS */}
+        {page === "emailLogs" && <EmailLogs />}
       </div>
     </div>
   );
 };
 
-// 🔘 Button style
 const buttonStyle = {
-  padding: "8px 16px",
+  padding: "10px 18px",
   border: "none",
   backgroundColor: "#2c3e50",
   color: "#fff",
   cursor: "pointer",
-  borderRadius: "4px",
+  borderRadius: "6px",
+  minWidth: "120px",
 };
 
 export default AdminDashboard;
