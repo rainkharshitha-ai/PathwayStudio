@@ -1,62 +1,45 @@
 require("dotenv").config();
-const { Resend } = require("resend");
+const nodemailer = require("nodemailer");
 
-// 🔐 Check API key first
-if (!process.env.RESEND_API_KEY) {
-    throw new Error("❌ RESEND_API_KEY is missing in environment variables");
-}
-
-// Create Resend instance
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Create transporter
+const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS, // App password
+    },
+});
 
 const sendStatusMail = async (to, name, status) => {
-    console.log("📧 Sending email to:", to);  // 👈 ADD THIS LINE
+    const subject =
+        status === "approved"
+            ? "🎉 Application Approved - Pathway Modeling Studio"
+            : "❌ Application Update - Pathway Modeling Studio";
 
-    try {
-        // 🎯 Subject
-        const subject =
-            status === "approved"
-                ? "🎉 Application Approved - Pathway Modeling Studio"
-                : "❌ Application Update - Pathway Modeling Studio";
+    const message =
+        status === "approved"
+            ? `Hi ${name},
 
-        // 📝 Message
-        const message =
-            status === "approved"
-                ? `Hi ${name},
-
-Congratulations! 🎉  
+Congratulations! 🎉
 Your application has been APPROVED.
 
-We look forward to working with you.
-
-Regards,  
+Regards,
 Pathway Modeling Studio`
-                : `Hi ${name},
+            : `Hi ${name},
 
-Thank you for applying to Pathway Modeling Studio.
+Your application was not selected.
 
-After careful review, we regret to inform you that your application was not selected this time.
-
-We encourage you to apply again in the future.
-
-Best wishes,  
+Best wishes,
 Pathway Modeling Studio`;
 
-        // 📤 Send Email
-        const response = await resend.emails.send({
-            from: "Pathway Modeling <onboarding@resend.dev>",
-            to: to, // ✅ Send to actual user email
-            subject,
-            text: message,
-        });
+    await transporter.sendMail({
+        from: process.env.EMAIL_USER,
+        to: to, // ✅ Send to real user
+        subject: subject,
+        text: message,
+    });
 
-        console.log("✅ Email sent successfully:", response);
-        return response;
-
-    } catch (error) {
-        console.error("❌ Error sending email:", error);
-        throw error;
-    }
+    console.log("✅ Email sent successfully via Gmail");
 };
 
 module.exports = sendStatusMail;
