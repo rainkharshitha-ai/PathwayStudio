@@ -1,19 +1,18 @@
+require("dotenv").config();   // 🔥 MUST BE FIRST
+
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
-const sendStatusMail = require("./email"); // 📧 Email helper
-require("dotenv").config();
+const sendStatusMail = require("./email");
+
 
 const app = express();
 
-/* ======================
-   MIDDLEWARE
-====================== */
 app.use(cors());
 app.use(express.json());
 
 /* ======================
-   MONGODB CONNECTION (ATLAS)
+   MONGODB CONNECTION
 ====================== */
 mongoose
   .connect(process.env.MONGO_URI)
@@ -24,7 +23,7 @@ mongoose
    SCHEMAS & MODELS
 ====================== */
 
-// ✅ APPLICATION SCHEMA (THIS WAS MISSING)
+// Applications
 const ApplicationSchema = new mongoose.Schema(
   {
     name: String,
@@ -72,8 +71,6 @@ const EmailLog = mongoose.model("email_logs", EmailLogSchema);
 // Submit application
 app.post("/api/applications", async (req, res) => {
   try {
-    console.log("📥 Incoming application:", req.body);
-
     const applicationData = {
       name: req.body.name?.trim() || "No Name",
       email: req.body.email?.trim() || "noemail@example.com",
@@ -89,12 +86,10 @@ app.post("/api/applications", async (req, res) => {
 
     res.status(201).json({ success: true });
   } catch (err) {
-    console.error("❌ Application save error:", err.message);
+    console.error("❌ Application save error:", err);
     res.status(400).json({ error: err.message });
   }
 });
-
-
 
 // Get applications
 app.get("/api/applications", async (req, res) => {
@@ -106,7 +101,7 @@ app.get("/api/applications", async (req, res) => {
   }
 });
 
-// Update application status + send mail
+// Update status + send email
 app.put("/api/applications/:id", async (req, res) => {
   try {
     const { status } = req.body;
@@ -116,29 +111,38 @@ app.put("/api/applications/:id", async (req, res) => {
       return res.status(404).json({ error: "Application not found" });
     }
 
-    if (application.status === status) {
-      return res.json({ success: true });
-    }
-
+    // Update status
     application.status = status;
     await application.save();
 
-    await sendStatusMail(application.email, application.name, status);
+    // Send email safely
+    const mailSent = await sendStatusMail(
+      application.email,
+      application.name,
+      status
+    );
 
+    if (!mailSent) {
+      console.log("⚠ Email failed but status updated");
+    }
+
+    // Save email log
     await EmailLog.create({
       to: application.email,
       subject:
         status === "approved"
           ? "Application Approved"
           : "Application Rejected",
-      status: "sent",
+      status: mailSent ? "sent" : "failed",
     });
 
     res.json({ success: true });
   } catch (err) {
+    console.error("❌ Status update error:", err);
     res.status(500).json({ error: "Status update failed" });
   }
 });
+
 
 // Delete application
 app.delete("/api/applications/:id", async (req, res) => {
@@ -185,7 +189,6 @@ app.delete("/api/messages/:id", async (req, res) => {
    EMAIL LOG ROUTES
 ====================== */
 
-// ✅ GET ALL EMAIL LOGS
 app.get("/api/email-logs", async (req, res) => {
   try {
     const logs = await EmailLog.find().sort({ createdAt: -1 });
@@ -196,36 +199,12 @@ app.get("/api/email-logs", async (req, res) => {
   }
 });
 
-
-// 🔁 RESEND EMAIL (LOG ONLY – NO DUPLICATE SAVE)
-app.post("/api/email-logs/resend/:id", async (req, res) => {
-  try {
-    const log = await EmailLog.findById(req.params.id);
-
-    if (!log) {
-      return res.status(404).json({ error: "Email log not found" });
-    }
-
-    // ⚠️ Here you can re-trigger your email function if needed
-    // await sendMail(log.to, log.subject);
-
-    res.json({ success: true, message: "Email resent successfully" });
-  } catch (err) {
-    console.error("❌ Resend failed:", err);
-    res.status(500).json({ error: "Resend failed" });
-  }
-});
-
-
-// 🗑️ DELETE EMAIL LOG
 app.delete("/api/email-logs/:id", async (req, res) => {
   try {
     const deleted = await EmailLog.findByIdAndDelete(req.params.id);
-
     if (!deleted) {
       return res.status(404).json({ error: "Email log not found" });
     }
-
     res.json({ success: true });
   } catch (err) {
     console.error("❌ Delete email log failed:", err);
