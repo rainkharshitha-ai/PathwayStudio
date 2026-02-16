@@ -1,40 +1,58 @@
+require("dotenv").config();
 const { Resend } = require("resend");
 
+// 🔐 Check API key first
+if (!process.env.RESEND_API_KEY) {
+    throw new Error("❌ RESEND_API_KEY is missing in environment variables");
+}
+
+// Create Resend instance
+const resend = new Resend(process.env.RESEND_API_KEY);
+
 const sendStatusMail = async (to, name, status) => {
-    const resend = new Resend(process.env.RESEND_API_KEY);
+    try {
+        // 🎯 Subject
+        const subject =
+            status === "approved"
+                ? "🎉 Application Approved - Pathway Modeling Studio"
+                : "❌ Application Update - Pathway Modeling Studio";
 
-    const subject =
-        status === "approved"
-            ? "🎉 Application Approved - Pathway Modeling Studio"
-            : "❌ Application Update - Pathway Modeling Studio";
-
-    const message =
-        status === "approved"
-            ? `Hi ${name},
+        // 📝 Message
+        const message =
+            status === "approved"
+                ? `Hi ${name},
 
 Congratulations! 🎉  
 Your application has been APPROVED.
 
-Regards,
-Pathway Modeling Team`
-            : `Hi ${name},
+We look forward to working with you.
 
-Your application was not selected.
+Regards,  
+Pathway Modeling Studio`
+                : `Hi ${name},
 
-Best wishes,
-Pathway Modeling Team`;
+Thank you for applying to Pathway Modeling Studio.
 
-    try {
-        await resend.emails.send({
+After careful review, we regret to inform you that your application was not selected this time.
+
+We encourage you to apply again in the future.
+
+Best wishes,  
+Pathway Modeling Studio`;
+
+        // 📤 Send Email
+        const response = await resend.emails.send({
             from: "Pathway Modeling <onboarding@resend.dev>",
-            to: "pathwaymodeling@gmail.com",
+            to: to, // ✅ Send to actual user email
             subject,
             text: message,
         });
 
-        console.log("✅ Email sent using Resend");
+        console.log("✅ Email sent successfully:", response);
+        return response;
+
     } catch (error) {
-        console.error("❌ Resend Error:", error);
+        console.error("❌ Error sending email:", error);
         throw error;
     }
 };
