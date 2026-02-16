@@ -139,7 +139,6 @@ const Home = () => {
             }}
           >
             <span style={{ cursor: "pointer" }}>📸 Instagram</span>
-            <span style={{ cursor: "pointer" }}>🐦 Twitter</span>
             <span style={{ cursor: "pointer" }}>▶️ YouTube</span>
             <span style={{ cursor: "pointer" }}>📘 Facebook</span>
           </div>
