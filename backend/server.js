@@ -1,10 +1,9 @@
-require("dotenv").config();   // 🔥 MUST BE FIRST
+require("dotenv").config(); // MUST BE FIRST
 
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const sendStatusMail = require("./email");
-
 
 const app = express();
 
@@ -19,7 +18,7 @@ mongoose
   .then(() => console.log("✅ MongoDB Atlas connected"))
   .catch((err) => {
     console.error("❌ MongoDB connection error:", err);
-    process.exit(1); // 🔥 stop server if DB fails
+    process.exit(1);
   });
 
 /* ======================
@@ -76,7 +75,7 @@ app.post("/api/applications", async (req, res) => {
   try {
     const applicationData = {
       name: req.body.name?.trim() || "No Name",
-      email: req.body.email?.trim() || "noemail@example.com",
+      email: req.body.email?.trim().toLowerCase() || "noemail@example.com",
       phone: req.body.phone?.trim() || "0000000000",
       instagram: req.body.instagram?.trim() || "",
       height: String(req.body.height || ""),
@@ -94,7 +93,7 @@ app.post("/api/applications", async (req, res) => {
   }
 });
 
-// Get applications
+// Get all applications (Admin)
 app.get("/api/applications", async (req, res) => {
   try {
     const applications = await Application.find().sort({ createdAt: -1 });
@@ -104,7 +103,39 @@ app.get("/api/applications", async (req, res) => {
   }
 });
 
-// Update status + send email
+/* ======================
+   ✅ CHECK STATUS (FREE OPTION)
+====================== */
+
+app.get("/api/check-status/:email", async (req, res) => {
+  try {
+    const email = req.params.email.trim().toLowerCase();
+
+    const application = await Application.findOne({ email });
+
+    if (!application) {
+      return res.status(404).json({
+        message: "Application not found. Please check your email.",
+      });
+    }
+
+    res.json({
+      name: application.name,
+      status: application.status,
+    });
+
+  } catch (error) {
+    console.error("❌ Check status error:", error);
+    res.status(500).json({
+      message: "Server error. Please try again later.",
+    });
+  }
+});
+
+/* ======================
+   UPDATE STATUS
+====================== */
+
 app.put("/api/applications/:id", async (req, res) => {
   try {
     const { status } = req.body;
@@ -114,22 +145,16 @@ app.put("/api/applications/:id", async (req, res) => {
       return res.status(404).json({ error: "Application not found" });
     }
 
-    // Update status
     application.status = status;
     await application.save();
 
-    // Send email safely
+    // Optional Email Sending
     const mailSent = await sendStatusMail(
       application.email,
       application.name,
       status
     );
 
-    if (!mailSent) {
-      console.log("⚠ Email failed but status updated");
-    }
-
-    // Save email log
     await EmailLog.create({
       to: application.email,
       subject:
@@ -140,12 +165,12 @@ app.put("/api/applications/:id", async (req, res) => {
     });
 
     res.json({ success: true });
+
   } catch (err) {
     console.error("❌ Status update error:", err);
     res.status(500).json({ error: "Status update failed" });
   }
 });
-
 
 // Delete application
 app.delete("/api/applications/:id", async (req, res) => {
@@ -196,8 +221,7 @@ app.get("/api/email-logs", async (req, res) => {
   try {
     const logs = await EmailLog.find().sort({ createdAt: -1 });
     res.json(logs);
-  } catch (err) {
-    console.error("❌ Fetch email logs failed:", err);
+  } catch {
     res.status(500).json({ error: "Failed to fetch email logs" });
   }
 });
@@ -209,8 +233,7 @@ app.delete("/api/email-logs/:id", async (req, res) => {
       return res.status(404).json({ error: "Email log not found" });
     }
     res.json({ success: true });
-  } catch (err) {
-    console.error("❌ Delete email log failed:", err);
+  } catch {
     res.status(500).json({ error: "Delete failed" });
   }
 });
@@ -218,6 +241,7 @@ app.delete("/api/email-logs/:id", async (req, res) => {
 /* ======================
    SERVER START
 ====================== */
+
 const PORT = process.env.PORT || 4000;
 
 app.listen(PORT, () => {

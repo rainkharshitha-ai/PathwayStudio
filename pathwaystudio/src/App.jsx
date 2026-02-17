@@ -15,6 +15,7 @@ import GetStart from "./components/GetStart";
 
 // ✅ Admin
 import AdminDashboard from "./Pathwayadmin/AdminDashboard";
+import CheckStatus from "./components/Checkstatus";
 
 function App() {
   const [user, setUser] = useState(null);
@@ -53,6 +54,7 @@ function App() {
         <Route path="/apply" element={<Apply />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/get-started" element={<GetStart />} />
+         <Route path="/check-status" element={<CheckStatus />} />
 
         {/* Login */}
         <Route path="/login" element={<Login />} />
