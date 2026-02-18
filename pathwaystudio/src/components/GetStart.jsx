@@ -9,46 +9,51 @@ import { auth } from "../firebase";
 
 export default function GetStart() {
   const navigate = useNavigate();
+  const provider = new GoogleAuthProvider();
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [dob, setDob] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // ✅ Handle Redirect Result (Mobile Safe)
+  // ✅ AFTER GOOGLE REDIRECT (Mobile Safe)
   useEffect(() => {
-    const checkRedirect = async () => {
+    const handleRedirect = async () => {
       try {
         const result = await getRedirectResult(auth);
 
-        if (result?.user) {
+        if (result && result.user) {
           const user = result.user;
 
+          // Get saved data
+          const fullName = localStorage.getItem("signup_name");
+          const savedDob = localStorage.getItem("signup_dob");
+
+          // Save user in MongoDB
           await fetch(`${import.meta.env.VITE_API_URL}/api/users`, {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              name: localStorage.getItem("fullName"),
+              name: fullName,
               email: user.email,
-              dob: localStorage.getItem("dob"),
+              dob: savedDob,
             }),
           });
 
-          localStorage.removeItem("fullName");
-          localStorage.removeItem("dob");
+          // Clear storage
+          localStorage.removeItem("signup_name");
+          localStorage.removeItem("signup_dob");
 
           alert("Account Created Successfully ✅");
 
           navigate("/become-model");
         }
       } catch (error) {
-        console.error(error);
+        console.error("Redirect error:", error);
       }
     };
 
-    checkRedirect();
+    handleRedirect();
   }, [navigate]);
 
   const handleGoogleSignup = async () => {
@@ -60,11 +65,10 @@ export default function GetStart() {
     try {
       setLoading(true);
 
-      // Save temporary data
-      localStorage.setItem("fullName", `${firstName} ${lastName}`);
-      localStorage.setItem("dob", dob);
+      // Save temporary data before redirect
+      localStorage.setItem("signup_name", `${firstName} ${lastName}`);
+      localStorage.setItem("signup_dob", dob);
 
-      const provider = new GoogleAuthProvider();
       await signInWithRedirect(auth, provider);
 
     } catch (error) {
@@ -105,22 +109,13 @@ export default function GetStart() {
           onChange={(e) => setDob(e.target.value)}
         />
 
-        <div className="d-grid gap-2">
-          <button
-            className="btn btn-dark"
-            onClick={() => navigate("/login")}
-          >
-            Get Started
-          </button>
-
-          <button
-            className="btn btn-danger"
-            onClick={handleGoogleSignup}
-            disabled={loading}
-          >
-            {loading ? "Signing up..." : "Sign Up with Google"}
-          </button>
-        </div>
+        <button
+          className="btn btn-danger w-100"
+          onClick={handleGoogleSignup}
+          disabled={loading}
+        >
+          {loading ? "Signing up..." : "Sign Up with Google"}
+        </button>
       </div>
 
       <style>
