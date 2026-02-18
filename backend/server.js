@@ -21,9 +21,10 @@ mongoose
   });
 
 /* ======================
-   APPLICATION SCHEMA
+   SCHEMAS
 ====================== */
 
+// ✅ Applications
 const ApplicationSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
@@ -38,17 +39,42 @@ const ApplicationSchema = new mongoose.Schema(
       enum: ["pending", "approved", "rejected"],
       default: "pending",
     },
+    approvedAt: Date, // 🔥 approval time
   },
   { timestamps: true }
 );
 
 const Application = mongoose.model("applications", ApplicationSchema);
 
+// ✅ Messages
+const MessageSchema = new mongoose.Schema(
+  {
+    name: String,
+    email: String,
+    message: String,
+  },
+  { timestamps: true }
+);
+
+const Message = mongoose.model("messages", MessageSchema);
+
+// ✅ Users (Google Signup)
+const UserSchema = new mongoose.Schema(
+  {
+    name: String,
+    email: String,
+    dob: String,
+  },
+  { timestamps: true }
+);
+
+const User = mongoose.model("users", UserSchema);
+
 /* ======================
    APPLICATION ROUTES
 ====================== */
 
-// ✅ Submit Application
+// Submit Application
 app.post("/api/applications", async (req, res) => {
   try {
     const newApplication = new Application({
@@ -64,89 +90,135 @@ app.post("/api/applications", async (req, res) => {
 
     await newApplication.save();
 
-    res.status(201).json({
-      success: true,
-      message: "Application submitted successfully",
-    });
+    res.status(201).json({ success: true });
   } catch (err) {
-    console.error("❌ Application save error:", err);
     res.status(400).json({ error: err.message });
   }
 });
 
-// ✅ Get All Applications (Admin)
+// Get All Applications
 app.get("/api/applications", async (req, res) => {
   try {
     const applications = await Application.find().sort({ createdAt: -1 });
     res.json(applications);
-  } catch (error) {
+  } catch {
     res.status(500).json({ error: "Failed to fetch applications" });
   }
 });
 
-// ✅ Check Application Status by Email
+// Update Status (Admin)
+app.put("/api/applications/:id", async (req, res) => {
+  try {
+    const { status } = req.body;
+
+    const application = await Application.findById(req.params.id);
+    if (!application) {
+      return res.status(404).json({ error: "Application not found" });
+    }
+
+    application.status = status;
+    application.approvedAt = new Date(); // 🔥 save decision time
+
+    await application.save();
+
+    res.json({ success: true });
+  } catch {
+    res.status(500).json({ error: "Failed to update status" });
+  }
+});
+
+// Delete Application
+app.delete("/api/applications/:id", async (req, res) => {
+  try {
+    await Application.findByIdAndDelete(req.params.id);
+    res.json({ success: true });
+  } catch {
+    res.status(500).json({ error: "Delete failed" });
+  }
+});
+
+// Check Status by Email
 app.get("/api/application-status/:email", async (req, res) => {
   try {
     const email = req.params.email.trim().toLowerCase();
-
     const application = await Application.findOne({ email });
 
     if (!application) {
-      return res.status(404).json({
-        message: "Application not found",
-      });
+      return res.status(404).json({ message: "Application not found" });
     }
 
     res.json({
       name: application.name,
       status: application.status,
       submittedAt: application.createdAt,
+      approvedAt: application.approvedAt,
     });
-  } catch (error) {
-    console.error("❌ Status check error:", error);
-    res.status(500).json({
-      message: "Server error. Please try again later.",
-    });
+  } catch {
+    res.status(500).json({ message: "Server error" });
   }
 });
 
-// ✅ Update Application Status (Admin)
-app.put("/api/applications/:id", async (req, res) => {
+/* ======================
+   MESSAGE ROUTES
+====================== */
+app.post("/api/messages", async (req, res) => {
   try {
-    const { status } = req.body;
+    await Message.create(req.body);
+    res.json({ success: true });
+  } catch {
+    res.status(500).json({ error: "Message not saved" });
+  }
+});
 
-    const application = await Application.findById(req.params.id);
+// Get Messages (Admin)
+app.get("/api/messages", async (req, res) => {
+  try {
+    const messages = await Message.find().sort({ createdAt: -1 });
+    res.json(messages);
+  } catch {
+    res.status(500).json({ error: "Failed to fetch messages" });
+  }
+});
 
-    if (!application) {
-      return res.status(404).json({ error: "Application not found" });
+// Delete Message
+app.delete("/api/messages/:id", async (req, res) => {
+  try {
+    await Message.findByIdAndDelete(req.params.id);
+    res.json({ success: true });
+  } catch {
+    res.status(500).json({ error: "Delete failed" });
+  }
+});
+
+/* ======================
+   USER ROUTES
+====================== */
+
+// Save User After Google Signup
+app.post("/api/users", async (req, res) => {
+  try {
+    const { name, email, dob } = req.body;
+
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.json({ message: "User already exists" });
     }
 
-    application.status = status;
-    await application.save();
+    await User.create({ name, email, dob });
 
-    res.json({
-      success: true,
-      message: "Application status updated",
-    });
-  } catch (error) {
-    console.error("❌ Status update error:", error);
-    res.status(500).json({
-      error: "Failed to update status",
-    });
+    res.json({ success: true });
+  } catch {
+    res.status(500).json({ error: "Failed to create user" });
   }
 });
 
-// ✅ Delete Application
-app.delete("/api/applications/:id", async (req, res) => {
+// Get Users (Admin)
+app.get("/api/users", async (req, res) => {
   try {
-    await Application.findByIdAndDelete(req.params.id);
-
-    res.json({
-      success: true,
-      message: "Application deleted",
-    });
-  } catch (error) {
-    res.status(500).json({ error: "Delete failed" });
+    const users = await User.find().sort({ createdAt: -1 });
+    res.json(users);
+  } catch {
+    res.status(500).json({ error: "Failed to fetch users" });
   }
 });
 

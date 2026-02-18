@@ -5,7 +5,8 @@ import { useNavigate } from "react-router-dom";
 
 import Applications from "./Applications";
 import Messages from "./Messages";
-import EmailLogs from "./EmailLogs";
+import ApplicationStatus from "./ApplicationStatus";
+import UserAccount from "./UserAccount";
 
 const AdminDashboard = () => {
   const [page, setPage] = useState("applications");
@@ -15,7 +16,7 @@ const AdminDashboard = () => {
     try {
       await signOut(auth);
       alert("Logged out successfully");
-      navigate("/admin-login"); // redirect after logout
+      navigate("/admin-login");
     } catch (error) {
       console.error(error);
       alert("Logout failed");
@@ -26,10 +27,16 @@ const AdminDashboard = () => {
     switch (page) {
       case "applications":
         return <Applications />;
+
       case "messages":
         return <Messages />;
-      case "emailLogs":
-        return <EmailLogs />;
+
+      case "applicationStatus":
+        return <ApplicationStatus />;
+
+      case "userAccount":
+        return <UserAccount />;
+
       default:
         return <Applications />;
     }
@@ -69,9 +76,15 @@ const AdminDashboard = () => {
         />
 
         <NavButton
-          label="Sent Emails"
-          active={page === "emailLogs"}
-          onClick={() => setPage("emailLogs")}
+          label="Application Status"
+          active={page === "applicationStatus"}
+          onClick={() => setPage("applicationStatus")}
+        />
+
+        <NavButton
+          label="User Account"
+          active={page === "userAccount"}
+          onClick={() => setPage("userAccount")}
         />
 
         <button
