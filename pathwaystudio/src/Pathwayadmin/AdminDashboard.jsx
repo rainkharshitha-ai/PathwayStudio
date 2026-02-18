@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { signOut } from "firebase/auth";
 import { auth } from "../firebase";
+import { useNavigate } from "react-router-dom";
 
 import Applications from "./Applications";
 import Messages from "./Messages";
@@ -8,14 +9,29 @@ import EmailLogs from "./EmailLogs";
 
 const AdminDashboard = () => {
   const [page, setPage] = useState("applications");
+  const navigate = useNavigate();
 
   const logout = async () => {
     try {
       await signOut(auth);
       alert("Logged out successfully");
+      navigate("/admin-login"); // redirect after logout
     } catch (error) {
-      alert("Logout failed");
       console.error(error);
+      alert("Logout failed");
+    }
+  };
+
+  const renderPage = () => {
+    switch (page) {
+      case "applications":
+        return <Applications />;
+      case "messages":
+        return <Messages />;
+      case "emailLogs":
+        return <EmailLogs />;
+      default:
+        return <Applications />;
     }
   };
 
@@ -24,14 +40,14 @@ const AdminDashboard = () => {
       style={{
         padding: "20px",
         fontFamily: "Arial",
-        maxWidth: "100%",
-        overflowX: "hidden",
+        maxWidth: "1200px",
+        margin: "auto",
       }}
     >
       {/* HEADER */}
       <h1 style={{ marginBottom: "20px" }}>Admin Dashboard</h1>
 
-      {/* NAV BUTTONS */}
+      {/* NAVIGATION */}
       <div
         style={{
           display: "flex",
@@ -40,26 +56,23 @@ const AdminDashboard = () => {
           marginBottom: "20px",
         }}
       >
-        <button
+        <NavButton
+          label="Applications"
+          active={page === "applications"}
           onClick={() => setPage("applications")}
-          style={buttonStyle}
-        >
-          Applications
-        </button>
+        />
 
-        <button
+        <NavButton
+          label="Messages"
+          active={page === "messages"}
           onClick={() => setPage("messages")}
-          style={buttonStyle}
-        >
-          Messages
-        </button>
+        />
 
-        <button
+        <NavButton
+          label="Sent Emails"
+          active={page === "emailLogs"}
           onClick={() => setPage("emailLogs")}
-          style={buttonStyle}
-        >
-          Sent Emails
-        </button>
+        />
 
         <button
           onClick={logout}
@@ -76,18 +89,27 @@ const AdminDashboard = () => {
 
       {/* PAGE CONTENT */}
       <div style={{ marginTop: "20px" }}>
-        {page === "applications" && <Applications />}
-        {page === "messages" && <Messages />}
-        {page === "emailLogs" && <EmailLogs />}
+        {renderPage()}
       </div>
     </div>
   );
 };
 
+const NavButton = ({ label, active, onClick }) => (
+  <button
+    onClick={onClick}
+    style={{
+      ...buttonStyle,
+      backgroundColor: active ? "#34495e" : "#2c3e50",
+    }}
+  >
+    {label}
+  </button>
+);
+
 const buttonStyle = {
   padding: "10px 18px",
   border: "none",
-  backgroundColor: "#2c3e50",
   color: "#fff",
   cursor: "pointer",
   borderRadius: "6px",

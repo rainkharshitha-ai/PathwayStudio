@@ -15,7 +15,9 @@ import GetStart from "./components/GetStart";
 
 // ✅ Admin
 import AdminDashboard from "./Pathwayadmin/AdminDashboard";
-import CheckStatus from "./components/Checkstatus";
+import ApplicationStatus from "./components/ApplicationStatus";
+
+
 
 function App() {
   const [user, setUser] = useState(null);
@@ -53,8 +55,11 @@ function App() {
         <Route path="/become-model" element={<BecomeModel />} />
         <Route path="/apply" element={<Apply />} />
         <Route path="/contact" element={<Contact />} />
+       <Route path="/application-status" element={<ApplicationStatus />} />
+
+
         <Route path="/get-started" element={<GetStart />} />
-         <Route path="/check-status" element={<CheckStatus />} />
+         
 
         {/* Login */}
         <Route path="/login" element={<Login />} />

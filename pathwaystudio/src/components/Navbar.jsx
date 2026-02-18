@@ -50,6 +50,13 @@ function Navbar() {
               <Link className="nav-link" to="/contact">Contact</Link>
             </li>
 
+            <li className="nav-item">
+  <Link className="nav-link" to="/application-status">
+    Application Status
+  </Link>
+</li>
+
+
             <li className="nav-item ms-lg-3">
               <Link className="nav-link" to="/login">Login</Link>
             </li>

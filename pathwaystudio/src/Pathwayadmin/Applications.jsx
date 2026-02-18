@@ -4,17 +4,24 @@ const Applications = () => {
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // ======================
-  // FETCH APPLICATIONS
-  // ======================
+  const API_URL = import.meta.env.VITE_API_URL;
+
   const fetchApplications = async () => {
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/applications`);
+      const res = await fetch(`${API_URL}/api/applications`);
+
+      if (!res.ok) throw new Error("Failed to fetch");
 
       const data = await res.json();
-      setApplications(data);
+
+      if (Array.isArray(data)) {
+        setApplications(data);
+      } else {
+        setApplications([]);
+      }
     } catch (error) {
-      console.error("Failed to fetch applications");
+      console.error("Fetch error:", error);
+      setApplications([]);
     } finally {
       setLoading(false);
     }
@@ -24,81 +31,56 @@ const Applications = () => {
     fetchApplications();
   }, []);
 
-  // ======================
-  // APPROVE / REJECT
-  // ======================
   const updateStatus = async (id, status) => {
     try {
-      await fetch(`${import.meta.env.VITE_API_URL}/api/applications/${id}`, {
-
+      const res = await fetch(`${API_URL}/api/applications/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status }),
       });
 
-      // Update UI immediately
+      if (!res.ok) throw new Error();
+
       setApplications((prev) =>
         prev.map((app) =>
           app._id === id ? { ...app, status } : app
         )
       );
-    } catch (error) {
+    } catch {
       alert("Status update failed");
     }
   };
 
-  // ======================
-  // DELETE APPLICATION
-  // ======================
   const deleteApplication = async (id) => {
-    const confirmDelete = window.confirm(
-      "Are you sure you want to delete this application?"
-    );
-
-    if (!confirmDelete) return;
+    if (!window.confirm("Delete this application?")) return;
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/applications/${id}`,
-        { method: "DELETE" }
-      );
+      const res = await fetch(`${API_URL}/api/applications/${id}`, {
+        method: "DELETE",
+      });
 
       if (!res.ok) throw new Error();
 
-      // Remove from UI
       setApplications((prev) =>
         prev.filter((app) => app._id !== id)
       );
-    } catch (error) {
+    } catch {
       alert("Delete failed");
     }
   };
 
-  // ======================
-  // UI
-  // ======================
-  if (loading) return <p>Loading applications...</p>;
+  if (loading) return <p>Loading...</p>;
 
   return (
-    <div style={{ padding: "20px" }}>
+    <div style={{ padding: 20 }}>
       <h2>Applications</h2>
 
       {applications.length === 0 && <p>No applications</p>}
 
       {applications.map((app) => (
-        <div
-          key={app._id}
-          style={{
-            borderBottom: "1px solid #ccc",
-            padding: "15px",
-            marginBottom: "10px",
-          }}
-        >
+        <div key={app._id} style={{ borderBottom: "1px solid #ccc", padding: 15 }}>
           <p><b>Name:</b> {app.name}</p>
           <p><b>Email:</b> {app.email}</p>
-          <p><b>Phone:</b> {app.phone}</p>
-          <p><b>Instagram:</b> {app.instagram}</p>
-          <p><b>Height:</b> {app.height}</p>
-          <p><b>Address:</b> {app.address}</p>
           <p><b>Status:</b> {app.status}</p>
 
           <button onClick={() => updateStatus(app._id, "approved")}>
@@ -107,20 +89,15 @@ const Applications = () => {
 
           <button
             onClick={() => updateStatus(app._id, "rejected")}
-            style={{ marginLeft: "10px" }}
+            style={{ marginLeft: 10 }}
           >
             Reject
           </button>
 
-          {/* DELETE ONLY IF REJECTED (BEST PRACTICE) */}
           {app.status === "rejected" && (
             <button
               onClick={() => deleteApplication(app._id)}
-              style={{
-                marginLeft: "10px",
-                background: "red",
-                color: "white",
-              }}
+              style={{ marginLeft: 10, background: "red", color: "white" }}
             >
               Delete
             </button>
