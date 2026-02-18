@@ -15,10 +15,8 @@ const AdminDashboard = () => {
   const logout = async () => {
     try {
       await signOut(auth);
-      alert("Logged out successfully");
       navigate("/admin-login");
     } catch (error) {
-      console.error(error);
       alert("Logout failed");
     }
   };
@@ -27,42 +25,23 @@ const AdminDashboard = () => {
     switch (page) {
       case "applications":
         return <Applications />;
-
       case "messages":
         return <Messages />;
-
       case "applicationStatus":
         return <ApplicationStatus />;
-
       case "userAccount":
         return <UserAccount />;
-
       default:
         return <Applications />;
     }
   };
 
   return (
-    <div
-      style={{
-        padding: "20px",
-        fontFamily: "Arial",
-        maxWidth: "1200px",
-        margin: "auto",
-      }}
-    >
-      {/* HEADER */}
-      <h1 style={{ marginBottom: "20px" }}>Admin Dashboard</h1>
+    <div className="admin-container">
+      <h1 className="admin-title">Admin Dashboard</h1>
 
       {/* NAVIGATION */}
-      <div
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: "10px",
-          marginBottom: "20px",
-        }}
-      >
+      <div className="button-grid">
         <NavButton
           label="Applications"
           active={page === "applications"}
@@ -87,23 +66,90 @@ const AdminDashboard = () => {
           onClick={() => setPage("userAccount")}
         />
 
-        <button
-          onClick={logout}
-          style={{
-            ...buttonStyle,
-            backgroundColor: "#e74c3c",
-          }}
-        >
+        <button className="logout-btn" onClick={logout}>
           Logout
         </button>
       </div>
 
       <hr />
 
-      {/* PAGE CONTENT */}
-      <div style={{ marginTop: "20px" }}>
+      <div className="content-area">
         {renderPage()}
       </div>
+
+      {/* CSS */}
+      <style>{`
+        .admin-container {
+          padding: 20px;
+          max-width: 1100px;
+          margin: auto;
+          animation: fadeIn 0.6s ease-in-out;
+        }
+
+        .admin-title {
+          text-align: center;
+          margin-bottom: 25px;
+        }
+
+        .button-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+          gap: 15px;
+          margin-bottom: 20px;
+        }
+
+        .nav-btn {
+          padding: 12px;
+          border: none;
+          border-radius: 8px;
+          color: #fff;
+          cursor: pointer;
+          font-weight: 500;
+          transition: all 0.3s ease;
+        }
+
+        .nav-btn:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 6px 15px rgba(0,0,0,0.15);
+        }
+
+        .logout-btn {
+          padding: 12px;
+          border: none;
+          border-radius: 8px;
+          background: #e74c3c;
+          color: white;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+
+        .logout-btn:hover {
+          background: #c0392b;
+          transform: translateY(-3px);
+        }
+
+        .content-area {
+          margin-top: 20px;
+          animation: slideUp 0.4s ease;
+        }
+
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+          from { transform: translateY(15px); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+
+        /* Mobile adjustment */
+        @media (max-width: 600px) {
+          .admin-title {
+            font-size: 24px;
+          }
+        }
+      `}</style>
     </div>
   );
 };
@@ -111,22 +157,13 @@ const AdminDashboard = () => {
 const NavButton = ({ label, active, onClick }) => (
   <button
     onClick={onClick}
+    className="nav-btn"
     style={{
-      ...buttonStyle,
       backgroundColor: active ? "#34495e" : "#2c3e50",
     }}
   >
     {label}
   </button>
 );
-
-const buttonStyle = {
-  padding: "10px 18px",
-  border: "none",
-  color: "#fff",
-  cursor: "pointer",
-  borderRadius: "6px",
-  minWidth: "120px",
-};
 
 export default AdminDashboard;

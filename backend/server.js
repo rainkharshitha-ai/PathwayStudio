@@ -1,11 +1,13 @@
 require("dotenv").config();
-
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 
 const app = express();
 
+/* ======================
+   MIDDLEWARE
+====================== */
 app.use(cors());
 app.use(express.json());
 
@@ -16,7 +18,7 @@ mongoose
   .connect(process.env.MONGO_URI)
   .then(() => console.log("✅ MongoDB Atlas connected"))
   .catch((err) => {
-    console.error("❌ MongoDB connection error:", err);
+    console.error("❌ MongoDB connection error:", err.message);
     process.exit(1);
   });
 
@@ -24,11 +26,11 @@ mongoose
    SCHEMAS
 ====================== */
 
-// ✅ Applications
+// Applications
 const ApplicationSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
-    email: { type: String, required: true },
+    email: { type: String, required: true, lowercase: true },
     phone: String,
     instagram: String,
     height: String,
@@ -39,14 +41,14 @@ const ApplicationSchema = new mongoose.Schema(
       enum: ["pending", "approved", "rejected"],
       default: "pending",
     },
-    approvedAt: Date, // 🔥 approval time
+    approvedAt: Date,
   },
   { timestamps: true }
 );
 
 const Application = mongoose.model("applications", ApplicationSchema);
 
-// ✅ Messages
+// Messages
 const MessageSchema = new mongoose.Schema(
   {
     name: String,
@@ -58,11 +60,11 @@ const MessageSchema = new mongoose.Schema(
 
 const Message = mongoose.model("messages", MessageSchema);
 
-// ✅ Users (Google Signup)
+// Users
 const UserSchema = new mongoose.Schema(
   {
     name: String,
-    email: String,
+    email: { type: String, lowercase: true },
     dob: String,
   },
   { timestamps: true }
@@ -77,32 +79,41 @@ const User = mongoose.model("users", UserSchema);
 // Submit Application
 app.post("/api/applications", async (req, res) => {
   try {
-    const newApplication = new Application({
-      name: req.body.name?.trim(),
-      email: req.body.email?.trim().toLowerCase(),
-      phone: req.body.phone,
-      instagram: req.body.instagram,
-      height: req.body.height,
-      address: req.body.address,
-      message: req.body.message,
+    const email = req.body.email?.trim().toLowerCase();
+
+    // Prevent duplicate applications
+    const existing = await Application.findOne({ email });
+    if (existing) {
+      return res.status(400).json({
+        message: "Application already submitted",
+      });
+    }
+
+    const newApplication = await Application.create({
+      ...req.body,
+      email,
       status: "pending",
     });
 
-    await newApplication.save();
-
-    res.status(201).json({ success: true });
+    res.status(201).json({
+      success: true,
+      data: newApplication,
+    });
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res.status(500).json({ error: err.message });
   }
 });
 
-// Get All Applications
+// Get All Applications (Admin)
 app.get("/api/applications", async (req, res) => {
   try {
-    const applications = await Application.find().sort({ createdAt: -1 });
+    const applications = await Application.find().sort({
+      createdAt: -1,
+    });
+
     res.json(applications);
-  } catch {
-    res.status(500).json({ error: "Failed to fetch applications" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -113,17 +124,18 @@ app.put("/api/applications/:id", async (req, res) => {
 
     const application = await Application.findById(req.params.id);
     if (!application) {
-      return res.status(404).json({ error: "Application not found" });
+      return res.status(404).json({
+        message: "Application not found",
+      });
     }
 
     application.status = status;
-    application.approvedAt = new Date(); // 🔥 save decision time
-
+    application.approvedAt = new Date();
     await application.save();
 
     res.json({ success: true });
-  } catch {
-    res.status(500).json({ error: "Failed to update status" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -132,19 +144,22 @@ app.delete("/api/applications/:id", async (req, res) => {
   try {
     await Application.findByIdAndDelete(req.params.id);
     res.json({ success: true });
-  } catch {
-    res.status(500).json({ error: "Delete failed" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
-// Check Status by Email
+// Check Status by Email (User)
 app.get("/api/application-status/:email", async (req, res) => {
   try {
     const email = req.params.email.trim().toLowerCase();
+
     const application = await Application.findOne({ email });
 
     if (!application) {
-      return res.status(404).json({ message: "Application not found" });
+      return res.status(404).json({
+        message: "Application not found",
+      });
     }
 
     res.json({
@@ -153,7 +168,7 @@ app.get("/api/application-status/:email", async (req, res) => {
       submittedAt: application.createdAt,
       approvedAt: application.approvedAt,
     });
-  } catch {
+  } catch (err) {
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -161,32 +176,34 @@ app.get("/api/application-status/:email", async (req, res) => {
 /* ======================
    MESSAGE ROUTES
 ====================== */
+
 app.post("/api/messages", async (req, res) => {
   try {
-    await Message.create(req.body);
-    res.json({ success: true });
-  } catch {
-    res.status(500).json({ error: "Message not saved" });
+    const message = await Message.create(req.body);
+    res.json({ success: true, data: message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
-// Get Messages (Admin)
 app.get("/api/messages", async (req, res) => {
   try {
-    const messages = await Message.find().sort({ createdAt: -1 });
+    const messages = await Message.find().sort({
+      createdAt: -1,
+    });
+
     res.json(messages);
-  } catch {
-    res.status(500).json({ error: "Failed to fetch messages" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
-// Delete Message
 app.delete("/api/messages/:id", async (req, res) => {
   try {
     await Message.findByIdAndDelete(req.params.id);
     res.json({ success: true });
-  } catch {
-    res.status(500).json({ error: "Delete failed" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -194,31 +211,43 @@ app.delete("/api/messages/:id", async (req, res) => {
    USER ROUTES
 ====================== */
 
-// Save User After Google Signup
+// Save User After Signup
 app.post("/api/users", async (req, res) => {
   try {
-    const { name, email, dob } = req.body;
+    const email = req.body.email?.toLowerCase();
 
     const existingUser = await User.findOne({ email });
+
     if (existingUser) {
-      return res.json({ message: "User already exists" });
+      return res.json({
+        message: "User already exists",
+      });
     }
 
-    await User.create({ name, email, dob });
+    const user = await User.create({
+      ...req.body,
+      email,
+    });
 
-    res.json({ success: true });
-  } catch {
-    res.status(500).json({ error: "Failed to create user" });
+    res.json({
+      success: true,
+      data: user,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
 // Get Users (Admin)
 app.get("/api/users", async (req, res) => {
   try {
-    const users = await User.find().sort({ createdAt: -1 });
+    const users = await User.find().sort({
+      createdAt: -1,
+    });
+
     res.json(users);
-  } catch {
-    res.status(500).json({ error: "Failed to fetch users" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 

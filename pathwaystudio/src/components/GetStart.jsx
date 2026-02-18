@@ -13,20 +13,44 @@ export default function GetStart() {
   const [loading, setLoading] = useState(false);
 
   const handleGoogleSignup = async () => {
-    try {
-      setLoading(true);
-      const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
+  if (!firstName || !lastName || !dob) {
+    alert("Please fill all details");
+    return;
+  }
 
-      alert("Account Created Successfully ✅");
+  try {
+    setLoading(true);
 
-      navigate("/application-status");
-    } catch (error) {
-      alert(error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+    const provider = new GoogleAuthProvider();
+    const result = await signInWithPopup(auth, provider);
+
+    const user = result.user;
+
+    // 🔥 SAVE USER TO YOUR BACKEND (MongoDB)
+    await fetch(`${import.meta.env.VITE_API_URL}/api/users`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: `${firstName} ${lastName}`,
+        email: user.email,
+        dob: dob,
+      }),
+    });
+
+    alert("Account Created Successfully ✅");
+
+    navigate("/become-model");
+
+
+  } catch (error) {
+    alert(error.message);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <div className="container py-5 d-flex justify-content-center">
