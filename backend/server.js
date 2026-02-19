@@ -11,10 +11,7 @@ const app = express();
 
 app.use(
   cors({
-    origin: [
-      "http://localhost:5173",
-      "https://pathway-studio.vercel.app" // 🔥 replace with your exact Vercel URL
-    ],
+    origin: true,   // ✅ allow all origins
     methods: ["GET", "POST", "PUT", "DELETE"],
   })
 );
@@ -23,7 +20,7 @@ app.use(express.json());
 
 /* ======================
    MONGODB CONNECTION
-====================== */
+====================== */0
 
 mongoose
   .connect(process.env.MONGO_URI)
@@ -172,6 +169,33 @@ app.get("/api/applications", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// Check application status by email
+app.get("/api/application-status/:email", async (req, res) => {
+  try {
+    const email = req.params.email.trim().toLowerCase();
+
+    const application = await Application.findOne({ email });
+
+    if (!application) {
+      return res.status(404).json({
+        message: "Application not found",
+      });
+    }
+
+    res.json({
+      name: application.name,
+      status: application.status,
+      submittedAt: application.createdAt,
+      approvedAt: application.approvedAt,
+    });
+
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+
 
 // Update application status
 app.put("/api/applications/:id", async (req, res) => {
