@@ -16,45 +16,46 @@ export default function GetStart() {
   const [dob, setDob] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // ✅ AFTER GOOGLE REDIRECT (Mobile Safe)
-  useEffect(() => {
-    const handleRedirect = async () => {
-      try {
-        const result = await getRedirectResult(auth);
+ useEffect(() => {
+  const unsubscribe = auth.onAuthStateChanged(async (user) => {
+    if (user) {
+      const fullName = localStorage.getItem("signup_name");
+      const savedDob = localStorage.getItem("signup_dob");
 
-        if (result && result.user) {
-          const user = result.user;
+      if (fullName && savedDob) {
+        try {
+          const response = await fetch(
+            `${import.meta.env.VITE_API_URL}/api/users`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                name: fullName,
+                email: user.email,
+                dob: savedDob,
+              }),
+            }
+          );
 
-          // Get saved data
-          const fullName = localStorage.getItem("signup_name");
-          const savedDob = localStorage.getItem("signup_dob");
-
-          // Save user in MongoDB
-          await fetch(`${import.meta.env.VITE_API_URL}/api/users`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              name: fullName,
-              email: user.email,
-              dob: savedDob,
-            }),
-          });
-
-          // Clear storage
-          localStorage.removeItem("signup_name");
-          localStorage.removeItem("signup_dob");
-
-          alert("Account Created Successfully ✅");
-
-          navigate("/become-model");
+          const data = await response.json();
+          console.log("Server response:", data);
+        } catch (error) {
+          console.error("Backend error:", error);
         }
-      } catch (error) {
-        console.error("Redirect error:", error);
-      }
-    };
 
-    handleRedirect();
-  }, [navigate]);
+        localStorage.removeItem("signup_name");
+        localStorage.removeItem("signup_dob");
+
+        alert("Account Created Successfully ✅");
+        navigate("/become-model");
+      }
+    }
+  });
+
+  return () => unsubscribe();
+}, [navigate]);
+
+
 
   const handleGoogleSignup = async () => {
     if (!firstName || !lastName || !dob) {
