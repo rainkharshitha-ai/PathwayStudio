@@ -1,9 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   GoogleAuthProvider,
-  signInWithRedirect,
-  getRedirectResult
+  signInWithPopup
 } from "firebase/auth";
 import { auth } from "../firebase";
 
@@ -16,42 +15,6 @@ export default function GetStart() {
   const [dob, setDob] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // 🔥 Handle redirect result properly
-  useEffect(() => {
-    const handleRedirect = async () => {
-      try {
-        const result = await getRedirectResult(auth);
-
-        if (!result?.user) return;
-
-        const user = result.user;
-
-        const fullName = localStorage.getItem("signup_name");
-        const savedDob = localStorage.getItem("signup_dob");
-
-        await fetch(`${import.meta.env.VITE_API_URL}/api/users`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: fullName || user.displayName || "User",
-            email: user.email,
-            dob: savedDob || null,
-          }),
-        });
-
-        localStorage.removeItem("signup_name");
-        localStorage.removeItem("signup_dob");
-
-        navigate("/become-model");
-
-      } catch (error) {
-        console.error("Redirect error:", error);
-      }
-    };
-
-    handleRedirect();
-  }, [navigate]);
-
   const handleGoogleSignup = async () => {
     if (!firstName || !lastName || !dob) {
       alert("Please fill all details");
@@ -61,21 +24,38 @@ export default function GetStart() {
     try {
       setLoading(true);
 
-      localStorage.setItem("signup_name", `${firstName} ${lastName}`);
-      localStorage.setItem("signup_dob", dob);
+      // 🔥 Login with Google Popup
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
 
-      await signInWithRedirect(auth, provider);
+      // 🔥 Send user to backend (no duplicate issue)
+      await fetch(`${import.meta.env.VITE_API_URL}/api/users`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: `${firstName} ${lastName}`,
+          email: user.email,
+          dob: dob,
+        }),
+      });
+
+      // 🔥 Go to next page
+      navigate("/become-model");
 
     } catch (error) {
-      console.error(error);
-      alert("Signup failed. Try again.");
+      console.error("Signup error:", error);
+      alert("Signup failed. Please try again.");
+    } finally {
       setLoading(false);
     }
   };
 
   return (
     <div className="container py-5 d-flex justify-content-center">
-      <div className="card shadow-lg p-4 rounded-4 w-100" style={{ maxWidth: "500px" }}>
+      <div
+        className="card shadow-lg p-4 rounded-4 w-100"
+        style={{ maxWidth: "500px" }}
+      >
         <h3 className="text-center mb-4">Create Your Account</h3>
 
         <input
