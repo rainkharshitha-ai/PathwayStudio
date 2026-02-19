@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   GoogleAuthProvider,
   signInWithRedirect,
-  onAuthStateChanged
+  getRedirectResult
 } from "firebase/auth";
 import { auth } from "../firebase";
 
@@ -16,15 +16,19 @@ export default function GetStart() {
   const [dob, setDob] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // 🔥 Handle redirect result properly
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (!user) return;
-
-      const fullName = localStorage.getItem("signup_name");
-      const savedDob = localStorage.getItem("signup_dob");
-
+    const handleRedirect = async () => {
       try {
-        // Always send user to backend
+        const result = await getRedirectResult(auth);
+
+        if (!result?.user) return;
+
+        const user = result.user;
+
+        const fullName = localStorage.getItem("signup_name");
+        const savedDob = localStorage.getItem("signup_dob");
+
         await fetch(`${import.meta.env.VITE_API_URL}/api/users`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -35,19 +39,17 @@ export default function GetStart() {
           }),
         });
 
-        // Just navigate (no alerts needed)
+        localStorage.removeItem("signup_name");
+        localStorage.removeItem("signup_dob");
+
         navigate("/become-model");
 
       } catch (error) {
-        console.error("Backend error:", error);
-        alert("Server error. Please try again.");
+        console.error("Redirect error:", error);
       }
+    };
 
-      localStorage.removeItem("signup_name");
-      localStorage.removeItem("signup_dob");
-    });
-
-    return () => unsubscribe();
+    handleRedirect();
   }, [navigate]);
 
   const handleGoogleSignup = async () => {
@@ -73,10 +75,7 @@ export default function GetStart() {
 
   return (
     <div className="container py-5 d-flex justify-content-center">
-      <div
-        className="card shadow-lg p-4 rounded-4 w-100"
-        style={{ maxWidth: "500px" }}
-      >
+      <div className="card shadow-lg p-4 rounded-4 w-100" style={{ maxWidth: "500px" }}>
         <h3 className="text-center mb-4">Create Your Account</h3>
 
         <input
