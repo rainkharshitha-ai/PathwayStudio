@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   GoogleAuthProvider,
   signInWithRedirect,
-  getRedirectResult
+  onAuthStateChanged
 } from "firebase/auth";
 import { auth } from "../firebase";
 
@@ -16,14 +16,16 @@ export default function GetStart() {
   const [dob, setDob] = useState("");
   const [loading, setLoading] = useState(false);
 
- useEffect(() => {
-  const unsubscribe = auth.onAuthStateChanged(async (user) => {
-    if (user) {
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!user) return;
+
       const fullName = localStorage.getItem("signup_name");
       const savedDob = localStorage.getItem("signup_dob");
 
-      if (fullName && savedDob) {
-        try {
+      try {
+        // Only try to create if signup data exists
+        if (fullName && savedDob) {
           const response = await fetch(
             `${import.meta.env.VITE_API_URL}/api/users`,
             {
@@ -39,23 +41,27 @@ export default function GetStart() {
 
           const data = await response.json();
           console.log("Server response:", data);
-        } catch (error) {
-          console.error("Backend error:", error);
+
+          // Only show success for NEW users
+          if (response.ok && data.message !== "User already exists") {
+            alert("Account Created Successfully ✅");
+          }
         }
 
-        localStorage.removeItem("signup_name");
-        localStorage.removeItem("signup_dob");
-
-        alert("Account Created Successfully ✅");
+        // Always navigate (both new & existing users)
         navigate("/become-model");
+
+      } catch (error) {
+        console.error("Backend error:", error);
+        alert("Server error. Please try again.");
       }
-    }
-  });
 
-  return () => unsubscribe();
-}, [navigate]);
+      localStorage.removeItem("signup_name");
+      localStorage.removeItem("signup_dob");
+    });
 
-
+    return () => unsubscribe();
+  }, [navigate]);
 
   const handleGoogleSignup = async () => {
     if (!firstName || !lastName || !dob) {
@@ -66,7 +72,6 @@ export default function GetStart() {
     try {
       setLoading(true);
 
-      // Save temporary data before redirect
       localStorage.setItem("signup_name", `${firstName} ${lastName}`);
       localStorage.setItem("signup_dob", dob);
 
@@ -83,7 +88,7 @@ export default function GetStart() {
     <div className="container py-5 d-flex justify-content-center">
       <div
         className="card shadow-lg p-4 rounded-4 w-100"
-        style={{ maxWidth: "500px", animation: "fadeIn 0.6s ease" }}
+        style={{ maxWidth: "500px" }}
       >
         <h3 className="text-center mb-4">Create Your Account</h3>
 
@@ -118,15 +123,6 @@ export default function GetStart() {
           {loading ? "Signing up..." : "Sign Up with Google"}
         </button>
       </div>
-
-      <style>
-        {`
-          @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-          }
-        `}
-      </style>
     </div>
   );
 }
