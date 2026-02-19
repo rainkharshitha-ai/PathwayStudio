@@ -24,31 +24,18 @@ export default function GetStart() {
       const savedDob = localStorage.getItem("signup_dob");
 
       try {
-        // Only try to create if signup data exists
-        if (fullName && savedDob) {
-          const response = await fetch(
-            `${import.meta.env.VITE_API_URL}/api/users`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                name: fullName,
-                email: user.email,
-                dob: savedDob,
-              }),
-            }
-          );
+        // Always send user to backend
+        await fetch(`${import.meta.env.VITE_API_URL}/api/users`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: fullName || user.displayName || "User",
+            email: user.email,
+            dob: savedDob || null,
+          }),
+        });
 
-          const data = await response.json();
-          console.log("Server response:", data);
-
-          // Only show success for NEW users
-          if (response.ok && data.message !== "User already exists") {
-            alert("Account Created Successfully ✅");
-          }
-        }
-
-        // Always navigate (both new & existing users)
+        // Just navigate (no alerts needed)
         navigate("/become-model");
 
       } catch (error) {

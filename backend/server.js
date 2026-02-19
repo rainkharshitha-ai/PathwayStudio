@@ -8,12 +8,23 @@ const app = express();
 /* ======================
    MIDDLEWARE
 ====================== */
-app.use(cors());
+
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173",
+      "https://pathway-studio.vercel.app" // 🔥 replace with your exact Vercel URL
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE"],
+  })
+);
+
 app.use(express.json());
 
 /* ======================
    MONGODB CONNECTION
 ====================== */
+
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => console.log("✅ MongoDB Atlas connected"))
@@ -64,13 +75,61 @@ const Message = mongoose.model("messages", MessageSchema);
 const UserSchema = new mongoose.Schema(
   {
     name: String,
-    email: { type: String, lowercase: true },
+    email: { type: String, lowercase: true, unique: true },
     dob: String,
   },
   { timestamps: true }
 );
 
 const User = mongoose.model("users", UserSchema);
+
+/* ======================
+   USER ROUTES
+====================== */
+
+// Ensure user exists (No duplicates)
+app.post("/api/users", async (req, res) => {
+  try {
+    const { name, email, dob } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    let user = await User.findOne({ email: normalizedEmail });
+
+    // If user does not exist → create
+    if (!user) {
+      user = await User.create({
+        name,
+        email: normalizedEmail,
+        dob,
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: user,
+    });
+
+  } catch (err) {
+    return res.status(500).json({
+      error: err.message,
+    });
+  }
+});
+
+// Get all users (Admin)
+app.get("/api/users", async (req, res) => {
+  try {
+    const users = await User.find().sort({ createdAt: -1 });
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 /* ======================
    APPLICATION ROUTES
@@ -81,7 +140,6 @@ app.post("/api/applications", async (req, res) => {
   try {
     const email = req.body.email?.trim().toLowerCase();
 
-    // Prevent duplicate applications
     const existing = await Application.findOne({ email });
     if (existing) {
       return res.status(400).json({
@@ -99,34 +157,30 @@ app.post("/api/applications", async (req, res) => {
       success: true,
       data: newApplication,
     });
+
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Get All Applications (Admin)
+// Get all applications (Admin)
 app.get("/api/applications", async (req, res) => {
   try {
-    const applications = await Application.find().sort({
-      createdAt: -1,
-    });
-
+    const applications = await Application.find().sort({ createdAt: -1 });
     res.json(applications);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Update Status (Admin)
+// Update application status
 app.put("/api/applications/:id", async (req, res) => {
   try {
     const { status } = req.body;
 
     const application = await Application.findById(req.params.id);
     if (!application) {
-      return res.status(404).json({
-        message: "Application not found",
-      });
+      return res.status(404).json({ message: "Application not found" });
     }
 
     application.status = status;
@@ -134,42 +188,19 @@ app.put("/api/applications/:id", async (req, res) => {
     await application.save();
 
     res.json({ success: true });
+
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Delete Application
+// Delete application
 app.delete("/api/applications/:id", async (req, res) => {
   try {
     await Application.findByIdAndDelete(req.params.id);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
-  }
-});
-
-// Check Status by Email (User)
-app.get("/api/application-status/:email", async (req, res) => {
-  try {
-    const email = req.params.email.trim().toLowerCase();
-
-    const application = await Application.findOne({ email });
-
-    if (!application) {
-      return res.status(404).json({
-        message: "Application not found",
-      });
-    }
-
-    res.json({
-      name: application.name,
-      status: application.status,
-      submittedAt: application.createdAt,
-      approvedAt: application.approvedAt,
-    });
-  } catch (err) {
-    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -188,10 +219,7 @@ app.post("/api/messages", async (req, res) => {
 
 app.get("/api/messages", async (req, res) => {
   try {
-    const messages = await Message.find().sort({
-      createdAt: -1,
-    });
-
+    const messages = await Message.find().sort({ createdAt: -1 });
     res.json(messages);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -202,50 +230,6 @@ app.delete("/api/messages/:id", async (req, res) => {
   try {
     await Message.findByIdAndDelete(req.params.id);
     res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-/* ======================
-   USER ROUTES
-====================== */
-
-// Save User After Signup
-app.post("/api/users", async (req, res) => {
-  try {
-    const email = req.body.email?.toLowerCase();
-
-    const existingUser = await User.findOne({ email });
-
-    if (existingUser) {
-      return res.json({
-        message: "User already exists",
-      });
-    }
-
-    const user = await User.create({
-      ...req.body,
-      email,
-    });
-
-    res.json({
-      success: true,
-      data: user,
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Get Users (Admin)
-app.get("/api/users", async (req, res) => {
-  try {
-    const users = await User.find().sort({
-      createdAt: -1,
-    });
-
-    res.json(users);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
