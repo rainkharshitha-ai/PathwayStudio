@@ -13,7 +13,7 @@ const Home = () => {
         style={{
           background: "linear-gradient(to right, #000000, #2c2c2c)",
           color: "#fff",
-          padding: "80px 0",
+          padding: "30px 0",
         }}
       >
         <Container className="text-center">
